@@ -385,4 +385,310 @@ jobs:
                         Text(
                           "NEXUS LINGO",
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.orbitron(fontSize: 28, fontWeight: Fo
+                          style: GoogleFonts.orbitron(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 4, color: const Color(0xFF00FFCC)),
+                        ),
+                        const SizedBox(height: 30),
+                        GlassCard(
+                          child: Column(
+                            children: [
+                              TextField(controller: _nameCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: "Your Name", hintStyle: TextStyle(color: Colors.white38), border: InputBorder.none)),
+                              const Divider(color: Colors.white24),
+                              TextField(controller: _ageCtrl, keyboardType: TextInputType.number, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: "Age", hintStyle: TextStyle(color: Colors.white38), border: InputBorder.none)),
+                              const Divider(color: Colors.white24),
+                              DropdownButton<String>(
+                                value: _level,
+                                isExpanded: true,
+                                dropdownColor: const Color(0xFF131722),
+                                underline: const SizedBox(),
+                                style: const TextStyle(color: Colors.white),
+                                items: ['Beginner (A1-A2)', 'Intermediate (B1-B2)', 'Advanced (C1-C2)'].map((l) => DropdownMenuItem(value: l, child: Text(l))).toList(),
+                                onChanged: (v) => setState(() => _level = v!),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF00FFCC),
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (ctx) => DomainSelectorScreen(
+                                  userName: _nameCtrl.text.isEmpty ? 'Cadet' : _nameCtrl.text,
+                                  level: _level,
+                                  age: int.tryParse(_ageCtrl.text) ?? 20,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Text("LAUNCH UNIVERSE ➔", style: GoogleFonts.orbitron(color: Colors.black, fontWeight: FontWeight.bold)),
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+          }
+          """,
+
+              "lib/ui/screens/domain_selector_screen.dart": """import 'package:flutter/material.dart';
+          import 'package:flutter/services.dart';
+          import 'package:google_fonts/google_fonts.dart';
+          import '../widgets/neon_background.dart';
+          import '../widgets/glass_card.dart';
+          import '../../services/ai_linguistic_engine.dart';
+          import 'topic_learning_screen.dart';
+
+          class DomainSelectorScreen extends StatelessWidget {
+            final String userName;
+            final String level;
+            final int age;
+
+            const DomainSelectorScreen({super.key, required this.userName, required this.level, required this.age});
+
+            Color _getColor(String domain) {
+              if (domain.contains('Gaming')) return const Color(0xFF00FF66);
+              if (domain.contains('Computer')) return const Color(0xFF00E5FF);
+              if (domain.contains('Electrical')) return const Color(0xFFFFD600);
+              return const Color(0xFFFF9100);
+            }
+
+            @override
+            Widget build(BuildContext context) {
+              final domains = AiLinguisticEngine.getAllDomains();
+              return NeonBackground(
+                child: SafeArea(
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text("SELECT DOMAIN", style: GoogleFonts.orbitron(fontSize: 18, color: const Color(0xFF00FFCC), fontWeight: FontWeight.bold)),
+                      ),
+                      Expanded(
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: domains.length,
+                          itemBuilder: (ctx, idx) {
+                            final domain = domains[idx];
+                            final color = _getColor(domain);
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: GlassCard(
+                                neonBorderColor: color,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (ctx) => TopicLearningScreen(userName: userName, topic: domain, level: level, age: age),
+                                    ),
+                                  );
+                                },
+                                child: Text(domain, textAlign: TextAlign.center, style: GoogleFonts.orbitron(fontSize: 15, color: Colors.white, fontWeight: FontWeight.bold)),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+          }
+          """,
+
+              "lib/ui/screens/topic_learning_screen.dart": """import 'package:flutter/material.dart';
+          import 'package:flutter/services.dart';
+          import 'package:google_fonts/google_fonts.dart';
+          import '../widgets/neon_background.dart';
+          import '../widgets/glass_card.dart';
+          import '../../services/ai_linguistic_engine.dart';
+          import '../../services/self_contained_audio.dart';
+
+          class TopicLearningScreen extends StatefulWidget {
+            final String userName;
+            final String topic;
+            final String level;
+            final int age;
+
+            const TopicLearningScreen({super.key, required this.userName, required this.topic, required this.level, required this.age});
+
+            @override
+            State<TopicLearningScreen> createState() => _TopicLearningScreenState();
+          }
+
+          class _TopicLearningScreenState extends State<TopicLearningScreen> {
+            late GeneratedLesson _lesson;
+            int? _selected;
+            bool _checked = false;
+            int _xp = 0;
+            int _streak = 0;
+
+            @override
+            void initState() {
+              super.initState();
+              SelfContainedAudio.init();
+              _load();
+            }
+
+            void _load() {
+              setState(() {
+                _lesson = AiLinguisticEngine.generateDynamicLesson(widget.topic, widget.level, widget.age);
+                _selected = null;
+                _checked = false;
+              });
+              SelfContainedAudio.speak(_lesson.sentenceEn);
+            }
+
+            @override
+            Widget build(BuildContext context) {
+              return NeonBackground(
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.white), onPressed: () => Navigator.pop(context)),
+                            Text("🔥 $_streak  |  ⚡ $_xp XP", style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        GlassCard(
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(_lesson.targetTerm, style: GoogleFonts.orbitron(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold)),
+                                  IconButton(icon: const Icon(Icons.volume_up, color: Color(0xFF00FFCC)), onPressed: () => SelfContainedAudio.speak(_lesson.sentenceEn)),
+                                ],
+                              ),
+                              Text("« ${_lesson.termDefinition} »", style: const TextStyle(color: Color(0xFF00FFCC))),
+                              const Divider(color: Colors.white24, height: 16),
+                              Text("“${_lesson.sentenceEn}”", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
+                              const SizedBox(height: 4),
+                              Text(_lesson.sentenceFa, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white38)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: GlassCard(
+                            child: Column(
+                              children: [
+                                Text(_lesson.quizQuestion, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 10),
+                                ...List.generate(_lesson.quizOptions.length, (idx) {
+                                  Color c = Colors.white10;
+                                  if (_checked) {
+                                    if (idx == _lesson.correctOptionIndex) c = Colors.green.withOpacity(0.5);
+                                    else if (_selected == idx) c = Colors.red.withOpacity(0.5);
+                                  } else if (_selected == idx) {
+                                    c = const Color(0xFF00FFCC).withOpacity(0.35);
+                                  }
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: InkWell(
+                                      onTap: _checked ? null : () {
+                                        HapticFeedback.selectionClick();
+                                        setState(() => _selected = idx);
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white24)),
+                                        child: Center(child: Text(_lesson.quizOptions[idx], style: const TextStyle(color: Colors.white))),
+                                      ),
+                                    ),
+                                  );
+                                }),
+                                const Spacer(),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7928CA)),
+                                  onPressed: _selected == null ? null : () {
+                                    if (!_checked) {
+                                      final isCorrect = _selected == _lesson.correctOptionIndex;
+                                      if (isCorrect) {
+                                        HapticFeedback.mediumImpact();
+                                        _xp += 30;
+                                        _streak += 1;
+                                      } else {
+                                        HapticFeedback.vibrate();
+                                        _streak = 0;
+                                      }
+                                      setState(() => _checked = true);
+                                    } else {
+                                      HapticFeedback.lightImpact();
+                                      _load();
+                                    }
+                                  },
+                                  child: Text(_checked ? "NEXT ➔" : "CHECK", style: const TextStyle(color: Colors.white)),
+                                )
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+          }
+          """
+          }
+
+          for path, content in files.items():
+              os.makedirs(os.path.dirname(path), exist_ok=True)
+              with open(path, "w", encoding="utf-8") as f:
+                  f.write(content.strip())
+
+          print("✅ تمام کدهای دارت و تنظیمات فلاتر با موفقیت ساخته شدند.")
+          EOF
+
+      # تولید خودکار پوشه استاندارد اندروید
+      - name: Auto-Generate 100% Clean Android Engine
+        run: |
+          rm -rf android
+          flutter create . --platforms=android --org com.nexuslingo
+
+      # تنظیم دسترسی‌های صدا در مانیفست اندروید
+      - name: Configure Audio Permissions
+        run: |
+          python3 -c "
+          p = 'android/app/src/main/AndroidManifest.xml'
+          with open(p, 'r') as f: c = f.read()
+          perms = '''
+              <uses-permission android:name=\"android.permission.RECORD_AUDIO\"/>
+              <uses-permission android:name=\"android.permission.INTERNET\"/>
+              <uses-permission android:name=\"android.permission.MODIFY_AUDIO_SETTINGS\"/>
+              <queries>
+                  <intent><action android:name=\"android.intent.action.TTS_SERVICE\" /></intent>
+              </queries>
+          '''
+          c = c.replace('<application', perms + '\n    <application')
+          with open(p, 'w') as f: f.write(c)
+          "
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Standalone APK
+        run: flutter build apk --release
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NexusLingo-Release-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14
