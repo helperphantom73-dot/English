@@ -1,4 +1,4 @@
-name: Build NexusLingo APK with Embedded Audio
+name: Build NexusLingo APK
 
 on:
   push:
@@ -25,21 +25,39 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Create Assets Folder & Download Embedded Speech Model
+      # حذف پوشه ناقص قبلی و تولید خودکار تمام فایل‌های سیستمی و گریدل اندروید توسط فلاتر
+      - name: Auto-Generate 100% Clean Android Engine
         run: |
-          mkdir -p assets/models
-          curl -L -o assets/models/en_model.onnx https://github.com/rhasspy/piper/releases/download/v0.0.2/voice-en-us-lessac-low.onnx || true
-          touch assets/models/.keep
+          rm -rf android
+          flutter create . --platforms=android --org com.nexuslingo
+
+      # تزریق خودکار مجوزهای صدا و میکروفون به مانیفست اندروید
+      - name: Configure Audio Permissions
+        run: |
+          python3 -c "
+          p = 'android/app/src/main/AndroidManifest.xml'
+          with open(p, 'r') as f: c = f.read()
+          perms = '''
+              <uses-permission android:name=\"android.permission.RECORD_AUDIO\"/>
+              <uses-permission android:name=\"android.permission.INTERNET\"/>
+              <uses-permission android:name=\"android.permission.MODIFY_AUDIO_SETTINGS\"/>
+              <queries>
+                  <intent><action android:name=\"android.intent.action.TTS_SERVICE\" /></intent>
+              </queries>
+          '''
+          c = c.replace('<application', perms + '\n    <application')
+          with open(p, 'w') as f: f.write(c)
+          "
 
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Fat APK
+      - name: Build Standalone APK
         run: flutter build apk --release
 
-      - name: Upload Artifact
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NexusLingo-Standalone-APK
+          name: NexusLingo-Release-APK
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 14
