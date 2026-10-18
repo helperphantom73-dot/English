@@ -1,4 +1,4 @@
-name: Build NexusLingo APK (All-in-One Auto Builder)
+name: Build NexusLingo APK
 
 on:
   push:
@@ -25,14 +25,14 @@ jobs:
           channel: 'stable'
           cache: true
 
-      # ساخت خودکار تمام فایل‌های دارت، رابط کاربری نئون و هوش مصنوعی با یک اسکریپت
       - name: Auto-Inject All Code & Files
         run: |
           python3 - << 'EOF'
           import os
 
-          files = {
-              "pubspec.yaml": """name: nexus_lingo
+          files = {}
+
+          files["pubspec.yaml"] = """name: nexus_lingo
           description: "Futuristic Standalone AI Language Engine"
           publish_to: 'none'
           version: 1.0.0+1
@@ -49,9 +49,9 @@ jobs:
 
           flutter:
             uses-material-design: true
-          """,
+          """
 
-              "lib/main.dart": """import 'package:flutter/material.dart';
+          files["lib/main.dart"] = """import 'package:flutter/material.dart';
           import 'package:flutter/services.dart';
           import 'ui/screens/onboarding_screen.dart';
 
@@ -77,9 +77,9 @@ jobs:
               );
             }
           }
-          """,
+          """
 
-              "lib/services/self_contained_audio.dart": """import 'package:flutter_tts/flutter_tts.dart';
+          files["lib/services/self_contained_audio.dart"] = """import 'package:flutter_tts/flutter_tts.dart';
 
           class SelfContainedAudio {
             static final FlutterTts _tts = FlutterTts();
@@ -103,9 +103,9 @@ jobs:
               } catch (_) {}
             }
           }
-          """,
+          """
 
-              "lib/services/ai_linguistic_engine.dart": """import 'dart:math';
+          files["lib/services/ai_linguistic_engine.dart"] = """import 'dart:math';
 
           class GeneratedLesson {
             final String domain;
@@ -190,14 +190,14 @@ jobs:
               final items = domainKnowledge[domainKey]!;
               final item = items[_random.nextInt(items.length)];
 
-              final sub = (item['subjects'] as List<String>)[0];
-              final verb = (item['verbs'] as List<Map<String, String>>)[0];
-              final action = (item['actions'] as List<Map<String, String>>)[0];
+              final sub = (item['subjects'] as List)[0].toString();
+              final verb = (item['verbs'] as List)[0] as Map;
+              final action = (item['actions'] as List)[0] as Map;
 
               final sentenceEn = "$sub ${verb['v']} the ${item['term']} ${action['en']}.";
               final sentenceFa = "$sub ${action['fa']} با «${item['trans']}» ${verb['fa']}.";
 
-              final options = List<String>.from(item['distractors'] as List<String>);
+              final options = List<String>.from(item['distractors'] as List);
               options.add(item['term'] as String);
               options.shuffle(_random);
 
@@ -216,9 +216,9 @@ jobs:
 
             static List<String> getAllDomains() => domainKnowledge.keys.toList();
           }
-          """,
+          """
 
-              "lib/ui/widgets/glass_card.dart": """import 'dart:ui';
+          files["lib/ui/widgets/glass_card.dart"] = """import 'dart:ui';
           import 'package:flutter/material.dart';
           import 'package:flutter/services.dart';
 
@@ -296,9 +296,9 @@ jobs:
               );
             }
           }
-          """,
+          """
 
-              "lib/ui/widgets/neon_background.dart": """import 'package:flutter/material.dart';
+          files["lib/ui/widgets/neon_background.dart"] = """import 'package:flutter/material.dart';
           import 'package:flutter_animate/flutter_animate.dart';
 
           class NeonBackground extends StatelessWidget {
@@ -351,9 +351,9 @@ jobs:
               );
             }
           }
-          """,
+          """
 
-              "lib/ui/screens/onboarding_screen.dart": """import 'package:flutter/material.dart';
+          files["lib/ui/screens/onboarding_screen.dart"] = """import 'package:flutter/material.dart';
           import 'package:flutter/services.dart';
           import 'package:google_fonts/google_fonts.dart';
           import '../widgets/neon_background.dart';
@@ -436,9 +436,9 @@ jobs:
               );
             }
           }
-          """,
+          """
 
-              "lib/ui/screens/domain_selector_screen.dart": """import 'package:flutter/material.dart';
+          files["lib/ui/screens/domain_selector_screen.dart"] = """import 'package:flutter/material.dart';
           import 'package:flutter/services.dart';
           import 'package:google_fonts/google_fonts.dart';
           import '../widgets/neon_background.dart';
@@ -502,9 +502,9 @@ jobs:
               );
             }
           }
-          """,
+          """
 
-              "lib/ui/screens/topic_learning_screen.dart": """import 'package:flutter/material.dart';
+          files["lib/ui/screens/topic_learning_screen.dart"] = """import 'package:flutter/material.dart';
           import 'package:flutter/services.dart';
           import 'package:google_fonts/google_fonts.dart';
           import '../widgets/neon_background.dart';
@@ -646,23 +646,22 @@ jobs:
             }
           }
           """
-          }
 
           for path, content in files.items():
-              os.makedirs(os.path.dirname(path), exist_ok=True)
+              d = os.path.dirname(path)
+              if d:
+                  os.makedirs(d, exist_ok=True)
               with open(path, "w", encoding="utf-8") as f:
-                  f.write(content.strip())
+                  f.write(content.strip() + "\n")
 
-          print("✅ تمام کدهای دارت و تنظیمات فلاتر با موفقیت ساخته شدند.")
+          print("✅ تمام کدهای دارت و فایل‌ها با موفقیت ساخته شدند.")
           EOF
 
-      # تولید خودکار پوشه استاندارد اندروید
       - name: Auto-Generate 100% Clean Android Engine
         run: |
           rm -rf android
           flutter create . --platforms=android --org com.nexuslingo
 
-      # تنظیم دسترسی‌های صدا در مانیفست اندروید
       - name: Configure Audio Permissions
         run: |
           python3 -c "
