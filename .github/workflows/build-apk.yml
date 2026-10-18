@@ -28,7 +28,6 @@ jobs:
       - name: Create Assets Folder & Download Embedded Speech Model
         run: |
           mkdir -p assets/models
-          # دانلود مدل فوق‌العاده سبک صدای انگلیسی آفلاین درون APK
           curl -L -o assets/models/en_model.onnx https://github.com/rhasspy/piper/releases/download/v0.0.2/voice-en-us-lessac-low.onnx || true
           touch assets/models/.keep
 
@@ -36,7 +35,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Fat APK
-        run: flutter build apk --release --split-per-abi=false
+        run: flutter build apk --release
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
